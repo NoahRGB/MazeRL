@@ -1,11 +1,51 @@
-from q_learner import QLearner
+from q_learner import QLearner, QLearnerStepper
 from environment import MazeEnvironment
+from maze_display import MazeDisplayer
+
+import pygame
+
+pygame.init()
+pygame.font.init()
+screen = pygame.display.set_mode((500, 500))
+
+max_iterations = 100
 
 env = MazeEnvironment()
-learner = QLearner(env, 0.1, 0.1, 1.0)
+learner = QLearnerStepper(env, 0.1, 0.1, 1.0)
+maze = env.get_env()
+displayer = MazeDisplayer(10, 10, screen, env.get_env(), tuple(env.start_state), tuple(env.goal_state))
 
-learner.learn(1000)
-learner.plot()
+running = True
+current_iteration = 1
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+    
+    if current_iteration < max_iterations:
+        new_state, done = learner.iteration_step()
+        displayer.update_path(tuple(new_state))
+        displayer.display(current_iteration)
+
+        if done:
+            learner.initialise_iteration()
+            current_iteration += 1
+            if current_iteration < max_iterations:
+                displayer.clear_path()
+    else:
+        displayer.display(current_iteration)
+       
+    pygame.display.flip()
+
+pygame.quit()
+
+
+
+
+
+
+
+# learner.plot()
 
 # - We could use a decaying epsilon greedy policy to make the trajectory length converge to the optimal length.
 

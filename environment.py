@@ -50,3 +50,6 @@ class MazeEnvironment:
       reward = -1
       done = (new_state==self.goal_state)
       return new_state, reward, done
+
+  def get_env(self):
+      return self.maze
