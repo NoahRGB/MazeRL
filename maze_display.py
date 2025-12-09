@@ -2,20 +2,20 @@ import pygame
 import numpy as np
 
 class MazeDisplayer:
-    def __init__(self, xoff, yoff, screen, maze, start_cell, goal_cell, cell_size=25, background_color="black"):
+    def __init__(self, xoff, yoff, screen, env, cell_size=25):
        self.xoff = xoff
        self.yoff = yoff
        self.screen = screen
-       self.maze = maze
-       self.start_cell = start_cell
-       self.goal_cell = goal_cell
-       self.background_colour = background_color
+       self.env = env
+       self.maze = self.env.get_env()
+       self.start_cell = tuple(self.env.start_state)
+       self.goal_cell = tuple(self.env.goal_state)
        self.cell_size = cell_size 
        self.font = pygame.font.SysFont("Comic Sans MS", 30)
        self.clear_path()
+       self.current_iteration = 1
         
     def display(self, iteration_num):
-        self.screen.fill(self.background_colour)
         text_surface = self.font.render(f"Iteration: {iteration_num}", False, (255, 0, 0)) 
         self.screen.blit(text_surface, (self.xoff, self.yoff + len(self.maze) * self.cell_size))
         for i in range(0, len(self.maze)):
@@ -38,6 +38,18 @@ class MazeDisplayer:
 
     def clear_path(self):
         self.current_path = [self.start_cell]
+
+
+
+
+
+
+
+
+
+
+
+
 
 if __name__ == "__main__":
     maze = np.array([
