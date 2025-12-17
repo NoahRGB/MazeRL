@@ -1,13 +1,39 @@
 import pygame
 import numpy as np
 
+class MazeDisplayerNew:
+    def __init__(self, screen, cell_size=25):
+        self.screen = screen
+        self.cell_size = cell_size
+        self.font = pygame.font.SysFont("Comic Sans MS", 30)
+        self.agents = []
+
+    def display(self):
+        xoff, yoff = 10, 10
+        for agent in self.agents:
+            env = agent.environment
+            for i in range(0, len(env.maze)):
+                for j in range(0, len(env.maze[i])):
+                    x_pos = xoff + j * self.cell_size
+                    y_pos = yoff + i * self.cell_size
+                    if (i, j) == env.start_state:
+                        pygame.draw.rect(self.screen, "green", pygame.Rect(x_pos, y_pos, self.cell_size, self.cell_size))
+                    elif (i, j) == env.goal_state:
+                        pygame.draw.rect(self.screen, "green", pygame.Rect(x_pos, y_pos, self.cell_size, self.cell_size))
+                    elif (i, j) in agent.current_iteration_path:
+                        pygame.draw.rect(self.screen, "yellow", pygame.Rect(x_pos, y_pos, self.cell_size, self.cell_size))
+                    elif env.maze[i][j] == 0:
+                        pygame.draw.rect(self.screen, "white", pygame.Rect(x_pos, y_pos, self.cell_size, self.cell_size), width=1)
+                    else:
+                        pygame.draw.rect(self.screen, "white", pygame.Rect(x_pos, y_pos, self.cell_size, self.cell_size))
+
 class MazeDisplayer:
     def __init__(self, xoff, yoff, screen, env, cell_size=25):
        self.xoff = xoff
        self.yoff = yoff
        self.screen = screen
        self.env = env
-       self.maze = self.env.get_env()
+       self.maze = self.env.maze
        self.start_cell = tuple(self.env.start_state)
        self.goal_cell = tuple(self.env.goal_state)
        self.cell_size = cell_size 
@@ -16,8 +42,8 @@ class MazeDisplayer:
        self.current_iteration = 1
         
     def display(self, iteration_num):
-        text_surface = self.font.render(f"Iteration: {iteration_num}", False, (255, 0, 0)) 
-        self.screen.blit(text_surface, (self.xoff, self.yoff + len(self.maze) * self.cell_size))
+        # text_surface = self.font.render(f"Iteration: {iteration_num}", False, (255, 0, 0)) 
+        # self.screen.blit(text_surface, (self.xoff, self.yoff + len(self.maze) * self.cell_size))
         for i in range(0, len(self.maze)):
             for j in range(0, len(self.maze[i])):
                 x_pos = self.xoff + j * self.cell_size

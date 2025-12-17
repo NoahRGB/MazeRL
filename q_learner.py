@@ -104,7 +104,7 @@ class QLearner:
       self.qtable[sy, sx, action] += self.learning_rate * (target_q_value - current_q_value) #update
       return current_q_value, state
 
-  def learn(self, iterations, quiet=False, displayer=None):
+  def learn(self, iterations, quiet=False):
     self.reward_history = []
     self.trajectory_length_history = []
     for iteration in range(iterations):
