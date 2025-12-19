@@ -11,7 +11,8 @@ class OnPolicyMonteCarloAgent(Agent):
         super().__init__(environment)
         self.title = f"On-policy ε-greedy Monte carlo ({'every visit' if every_visit else 'first visit'})"
 
-        self.qtable = np.zeros((environment.maze_height, environment.maze_width, len(environment.actions)), dtype=np.float64)
+        # self.qtable = np.zeros((environment.maze_height, environment.maze_width, len(environment.actions)), dtype=np.float64)
+        self.qtable = np.full((environment.maze_height, environment.maze_width, len(environment.actions)), -1.)
         self.visit_count = np.zeros((environment.maze_height, environment.maze_width, len(environment.actions)), dtype=np.float64)
         self.returns = np.zeros((environment.maze_height, environment.maze_width, len(environment.actions)), dtype=np.float64)
         self.epsilon = epsilon
@@ -52,19 +53,13 @@ class OnPolicyMonteCarloAgent(Agent):
         self.current_iteration_path = []
 
         self.episodes = []
-        self.states = []
-        self.actions = []
-        self.rewards = []
         self.visited = set()
         self.epsilon *= 0.99
 
     def iteration_step(self):
         self.time_step += 1
         action = self.run_policy(self.state)
-        self.states.append(self.state)
-        self.actions.append(action)
         new_state, reward, self.done = self.environment.step(action, self.state)
-        self.rewards.append(reward)
         self.episodes.append((self.state, action, reward))
         self.state = new_state
         self.current_iteration_path.append((*self.state, (200, 200, 0)))

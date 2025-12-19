@@ -15,6 +15,13 @@ class Environment(ABC):
 class MazeEnvironment(Environment):
     def __init__(self, cell_size=25):
         # self.maze = np.array([
+        #     [1,1,1,1,1],
+        #     [1,0,0,0,1],
+        #     [1,0,0,0,1],
+        #     [1,1,1,1,1],
+        # 
+        # ])
+        # self.maze = np.array([
         #     [1,1,1,1,1,1,1,1,1],
         #     [1,0,1,0,0,0,0,0,1],
         #     [1,0,1,1,1,0,1,0,1],
