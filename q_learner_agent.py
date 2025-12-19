@@ -10,6 +10,7 @@ class QLearnerAgent(Agent):
     def __init__(self, environment: Environment, epsilon, learning_rate, discount_factor):
         super().__init__(environment)
         self.title = "Tabular Q Learning"
+        self.finished_episodes = False
         self.qtable = np.zeros((environment.maze_height, environment.maze_width, len(environment.actions)), dtype=np.float64)
         self.epsilon = epsilon
         self.learning_rate = learning_rate
@@ -19,6 +20,14 @@ class QLearnerAgent(Agent):
         self.reward_history = []
         self.trajectory_length_history = []
         self.reset_iteration()
+
+    def final_episode(self):
+        self.reset_iteration()
+        saved_epsilon = self.epsilon
+        self.epsilon = 0
+        self.learn(1, quiet=True)
+        self.epsilon = saved_epsilon 
+        self.finished_episodes = True
 
     def run_policy(self, state):
         # epsilon greedy
@@ -53,7 +62,7 @@ class QLearnerAgent(Agent):
         self.apply_q_update(self.state, action, reward, next_state, self.done, self.discount_factor)
 
         self.state = next_state
-        self.current_iteration_path.append(self.state)
+        self.current_iteration_path.append((*self.state, (200, 200, 0)))
         self.total_reward += reward * (self.discount_factor**self.time_step)
         self.time_step += 1
 
