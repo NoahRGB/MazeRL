@@ -5,18 +5,16 @@ import matplotlib.pyplot as plt
 
 import random
 
-class OnPolicyMonteCarloAgent(Agent):
-    # tabular monte carlo epsilon greedy on policy agent without exploring starts
-    def __init__(self, environment, epsilon, discount_factor, every_visit):
+class SarsaAgent(Agent):
+    def __init__(self, environment, epsilon, discount_factor, step_size=1.0):
         super().__init__(environment)
-        self.title = f"On-policy ε-greedy Monte carlo ({'every visit' if every_visit else 'first visit'})"
+        self.title = f"On policy TD(0) (sarsa, ε-greedy)"
 
         self.qtable = np.full((environment.maze_height, environment.maze_width, len(environment.actions)), -1.)
-        self.visit_count = np.zeros((environment.maze_height, environment.maze_width, len(environment.actions)), dtype=np.float64)
-        self.returns = np.zeros((environment.maze_height, environment.maze_width, len(environment.actions)), dtype=np.float64)
+
         self.epsilon = epsilon
         self.discount_factor = discount_factor
-        self.every_visit = every_visit
+        self.step_size = step_size
 
         self.completed_iterations = 0
         self.trajectory_length_history = []
@@ -43,31 +41,28 @@ class OnPolicyMonteCarloAgent(Agent):
         self.done = False
         self.current_iteration_path = []
 
-        self.episodes = []
-        self.visited = set()
+        self.current_action = self.run_policy(self.state)
         self.epsilon *= 0.99
 
     def iteration_step(self):
         self.time_step += 1
-        action = self.run_policy(self.state)
-        new_state, reward, self.done = self.environment.step(action, self.state)
-        self.episodes.append((self.state, action, reward))
+        new_state, reward, self.done = self.environment.step(self.current_action, self.state)
+
+        next_action = self.run_policy(new_state)
+
+        current_state_y, current_state_x = self.state
+        next_state_y, next_state_x = new_state
+        next_q_value = self.qtable[next_state_y, next_state_x, next_action]
+        self.qtable[current_state_y, current_state_x, self.current_action] += self.step_size * (reward + self.discount_factor * next_q_value - self.qtable[current_state_y, current_state_x, self.current_action])
+
         self.state = new_state
+        self.current_action = next_action
+
         self.current_iteration_path.append((*self.state, (200, 200, 0)))
 
         if self.done:
             self.trajectory_length_history.append(self.time_step)
             self.completed_iterations += 1
-
-            cumulative_reward = 0
-            for t in range(len(self.episodes) - 1, -1, -1):
-                (y, x), action, reward = self.episodes[t]
-                cumulative_reward = self.discount_factor * cumulative_reward + reward 
-                if (not self.every_visit and (y, x, action) not in self.visited) or self.every_visit: 
-                    self.visited.add((y, x, action))
-                    self.visit_count[y, x, action] += 1
-                    self.returns[y, x, action] += cumulative_reward 
-                    self.qtable[y, x, action] = float(self.returns[y, x, action]) / self.visit_count[y, x, action]  
 
     def learn(self, iterations, quiet=False):
         for episode in range(iterations):
@@ -85,4 +80,4 @@ class OnPolicyMonteCarloAgent(Agent):
         plt.show()
 
     def __str__(self):
-        return f"ε = {round(self.epsilon, 2)}, γ = {self.discount_factor}"
+        return f"ε = {round(self.epsilon, 2)}, γ = {self.discount_factor}, α = {self.step_size}"

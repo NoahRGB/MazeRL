@@ -5,20 +5,30 @@ import matplotlib.pyplot as plt
 
 import random
 
-class TD0Agent(Agent):
-    def __init__(self, environment):
+class QLearningAgent(Agent):
+    def __init__(self, environment, epsilon, discount_factor, step_size=1.0):
         super().__init__(environment)
-        self.title = f""
+        self.title = f"Q learning agent (off policy TD)"
 
-        # self.qtable = np.zeros((environment.maze_height, environment.maze_width, len(environment.actions)), dtype=np.float64)
         self.qtable = np.full((environment.maze_height, environment.maze_width, len(environment.actions)), -1.)
-        self.visit_count = np.zeros((environment.maze_height, environment.maze_width, len(environment.actions)), dtype=np.float64)
-        self.returns = np.zeros((environment.maze_height, environment.maze_width, len(environment.actions)), dtype=np.float64)
-        self.finished_episodes = False
+
+        self.epsilon = epsilon
+        self.step_size = step_size
+        self.discount_factor = discount_factor
 
         self.completed_iterations = 0
         self.trajectory_length_history = []
         self.reset_iteration()
+
+    def get_best_actions(self, state):
+        y, x = state
+        legal_moves = self.environment.get_legal(state)
+        q_values = self.qtable[y, x, :] # Fetch from the q-table the 4 q-values for this current state (The 4 q-values correspond to actions North, South, West, East)
+        legal_q_values = self.qtable[y, x, legal_moves]
+        best_q_value = legal_q_values.max() # identify the best q_value
+        best_q_indices = np.argwhere(q_values == best_q_value).flatten().tolist() # find all those occurences of the max q-value
+        best_q_indices = [index for index in best_q_indices if index in legal_moves]
+        return best_q_indices
 
     def run_policy(self, state):
         legal_moves = self.environment.get_legal(state)
@@ -34,13 +44,6 @@ class TD0Agent(Agent):
             best_q_indices = [index for index in best_q_indices if index in legal_moves]
             return np.random.choice(best_q_indices) # if multiple q values have the maximum value, then choose one of them randomly
 
-    def final_episode(self):
-        saved_epsilon = self.epsilon
-        self.epsilon = 0
-        self.learn(1, quiet=True)
-        self.epsilon = saved_epsilon
-        self.finished_episodes = True
-
     def reset_iteration(self):
         # configuation for the current iteration
         self.state = self.environment.start_state
@@ -48,31 +51,25 @@ class TD0Agent(Agent):
         self.done = False
         self.current_iteration_path = []
 
-        self.episodes = []
-        self.visited = set()
         self.epsilon *= 0.99
 
     def iteration_step(self):
         self.time_step += 1
         action = self.run_policy(self.state)
         new_state, reward, self.done = self.environment.step(action, self.state)
-        self.episodes.append((self.state, action, reward))
+
+        current_state_y, current_state_x = self.state
+        new_state_y, new_state_x = new_state
+        max_q = self.qtable[new_state_y, new_state_x, np.random.choice(self.get_best_actions(new_state))]
+        self.qtable[current_state_y, current_state_x, action] += self.step_size * (reward + self.discount_factor * max_q - self.qtable[current_state_y, current_state_x, action])
+
         self.state = new_state
+
         self.current_iteration_path.append((*self.state, (200, 200, 0)))
 
         if self.done:
             self.trajectory_length_history.append(self.time_step)
             self.completed_iterations += 1
-
-            cumulative_reward = 0
-            for t in range(len(self.episodes) - 1, -1, -1):
-                (y, x), action, reward = self.episodes[t]
-                cumulative_reward = self.discount_factor * cumulative_reward + reward 
-                if (not self.every_visit and (y, x, action) not in self.visited) or self.every_visit: 
-                    self.visited.add((y, x, action))
-                    self.visit_count[y, x, action] += 1
-                    self.returns[y, x, action] += cumulative_reward 
-                    self.qtable[y, x, action] = float(self.returns[y, x, action]) / self.visit_count[y, x, action]  
 
     def learn(self, iterations, quiet=False):
         for episode in range(iterations):
@@ -90,4 +87,4 @@ class TD0Agent(Agent):
         plt.show()
 
     def __str__(self):
-        return ""
+        return f"ε = {round(self.epsilon, 2)}, γ = {self.discount_factor}, α = {self.step_size}"

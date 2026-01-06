@@ -51,10 +51,7 @@ def show_agents(agents):
         display_agents(camera_offset_x, camera_offset_y, scale, agents, screen, font)
     
         pygame.display.flip()
-    
-    # agents[0].learn(1000000, quiet=True)
-    # agents[0].plot()
-    
+
     pygame.quit()
 
 
