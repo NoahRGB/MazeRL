@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 
 import random
 
-class NstepSarsaAgent(Agent):
+class NstepExpectedSarsaAgent(Agent):
     def __init__(self, environment, n, epsilon, discount_factor, step_size=1.0):
         super().__init__(environment)
-        self.title = f"On policy n-step Sarsa agent (decaying ε-greedy)"
+        self.title = f"On policy n-step expected Sarsa agent (decaying ε-greedy)"
 
         self.qtable = np.full((environment.maze_height, environment.maze_width, len(environment.actions)), 0.0)
 
@@ -22,7 +22,7 @@ class NstepSarsaAgent(Agent):
         self.reset_iteration()
 
     def get_best_actions(self, state):
-        y, x = state 
+        y, x = state
         legal_moves = self.environment.get_legal(state)
         q_values = self.qtable[y, x, :]
         legal_q_values = self.qtable[y, x, legal_moves]
@@ -36,12 +36,12 @@ class NstepSarsaAgent(Agent):
         if random.random() < self.epsilon:
             return random.choice(legal_moves)
         else:
-            # greedy policy
+            # greedy
             return np.random.choice(self.get_best_actions(state))
-
+            
     def reset_iteration(self):
         # configuation for the current iteration
-        self.state = self.environment.start_state # used for displaying maze
+        self.state = self.environment.start_state # used for displaying the maze
         self.time_step = 0 
         self.done = False
         self.current_iteration_path = []
@@ -52,7 +52,7 @@ class NstepSarsaAgent(Agent):
         self.epsilon *= 0.99
 
     def iteration_step(self):
-        # make current move and record s', a, r 
+        # make current move and record s', a, r
         current_state = self.states[self.time_step]
         action = self.run_policy(current_state)
         new_state, reward, self.done = self.environment.step(action, current_state)
@@ -66,16 +66,24 @@ class NstepSarsaAgent(Agent):
             state_to_update_y, state_to_update_x = self.states[time_to_update]
             action_to_update = self.actions[time_to_update]
 
-            # sum the discounted 'n' observed rewards 
+            # sum the discounted 'n' observed rewards
             target = 0
             for t in range(time_to_update+1, time_to_update+self.n+1):
                 target += (self.discount_factor**(t - time_to_update - 1)) * self.rewards[t]
 
-            # add the bootstrapped current estimate for the rest of the time steps
             final_state_y, final_state_x = self.states[time_to_update+self.n]
-            target += (self.discount_factor**self.n) * self.qtable[final_state_y, final_state_x, self.actions[time_to_update+self.n]]
+            legal_actions = self.environment.get_legal(self.states[time_to_update+self.n])
+            best_actions = self.get_best_actions(self.states[time_to_update+self.n])
+            expected_value = 0
+            for new_action in legal_actions:
+                if new_action in best_actions:
+                    prob = ((self.epsilon / len(legal_actions)) + ((1-self.epsilon) / len(best_actions)))
+                else:
+                    prob = (self.epsilon / len(legal_actions))
+                expected_value += prob * self.qtable[final_state_y, final_state_x, new_action]
 
-            # update the q values for the current state with the computed target (G_t:t+n)
+            target += (self.discount_factor**self.n) * expected_value
+
             self.qtable[state_to_update_y, state_to_update_x, action_to_update] += (
                     self.step_size * (target - self.qtable[state_to_update_y, state_to_update_x, action_to_update])
             )
@@ -83,7 +91,7 @@ class NstepSarsaAgent(Agent):
         self.time_step += 1
 
         # recorded for displaying the environment
-        self.state = self.states[self.time_step-1]
+        self.state = self.states[self.time_step-1] 
         self.current_iteration_path.append((*self.states[self.time_step-1], (200, 200, 0)))
 
         if self.done:

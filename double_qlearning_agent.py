@@ -10,8 +10,8 @@ class DoubleQLearningAgent(Agent):
         super().__init__(environment)
         self.title = f"Doble Q learning agent (off policy TD)"
 
-        self.qtable1 = np.full((environment.maze_height, environment.maze_width, len(environment.actions)), -1.)
-        self.qtable2 = np.full((environment.maze_height, environment.maze_width, len(environment.actions)), -1.)
+        self.qtable1 = np.full((environment.maze_height, environment.maze_width, len(environment.actions)), 0.0)
+        self.qtable2 = np.full((environment.maze_height, environment.maze_width, len(environment.actions)), 0.0)
 
         self.epsilon = epsilon
         self.step_size = step_size
@@ -26,6 +26,7 @@ class DoubleQLearningAgent(Agent):
         legal_moves = self.environment.get_legal(state)
         q_values = qtable[y, x, :]
         legal_q_values = qtable[y, x, legal_moves]
+        print(legal_q_values)
         best_q_value = legal_q_values.max() 
         best_q_indices = np.argwhere(q_values == best_q_value).flatten().tolist() 
         best_q_indices = [index for index in best_q_indices if index in legal_moves]
@@ -36,14 +37,8 @@ class DoubleQLearningAgent(Agent):
         if random.random() < self.epsilon:
             return random.choice(legal_moves)
         else:
-            y, x = state
-            legal_moves = self.environment.get_legal(state)
-            q_values = self.qtable1[y, x, :] + self.qtable2[y, x, :]
-            legal_q_values = self.qtable1[y, x, legal_moves] + self.qtable2[y, x, legal_moves]
-            best_q_value = legal_q_values.max() 
-            best_q_indices = np.argwhere(q_values == best_q_value).flatten().tolist() 
-            best_q_indices = [index for index in best_q_indices if index in legal_moves]
-            return np.random.choice(best_q_indices)
+            # greedy
+            return np.random.choice(self.get_best_action(state, self.qtable1+self.qtable2))
 
     def reset_iteration(self):
         # configuation for the current iteration

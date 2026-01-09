@@ -6,14 +6,14 @@ import matplotlib.pyplot as plt
 import random
 
 class OnPolicyMonteCarloAgent(Agent):
-    # tabular monte carlo epsilon greedy on policy agent without exploring starts
     def __init__(self, environment, epsilon, discount_factor, every_visit):
         super().__init__(environment)
-        self.title = f"On-policy ε-greedy Monte carlo ({'every visit' if every_visit else 'first visit'})"
+        self.title = f"On-policy decarying ε-greedy Monte carlo agent ({'every visit' if every_visit else 'first visit'})"
 
         self.qtable = np.full((environment.maze_height, environment.maze_width, len(environment.actions)), -1.)
         self.visit_count = np.zeros((environment.maze_height, environment.maze_width, len(environment.actions)), dtype=np.float64)
         self.returns = np.zeros((environment.maze_height, environment.maze_width, len(environment.actions)), dtype=np.float64)
+
         self.epsilon = epsilon
         self.discount_factor = discount_factor
         self.every_visit = every_visit
@@ -22,19 +22,23 @@ class OnPolicyMonteCarloAgent(Agent):
         self.trajectory_length_history = []
         self.reset_iteration()
 
+    def get_best_actions(self, state):
+        y, x = state 
+        legal_moves = self.environment.get_legal(state)
+        q_values = self.qtable[y, x, :]
+        legal_q_values = self.qtable[y, x, legal_moves]
+        best_q_value = legal_q_values.max()
+        best_q_indices = np.argwhere(q_values == best_q_value).flatten().tolist()
+        best_q_indices = [index for index in best_q_indices if index in legal_moves]
+        return best_q_indices
+
     def run_policy(self, state):
         legal_moves = self.environment.get_legal(state)
         if random.random() < self.epsilon:
             return random.choice(legal_moves)
         else:
-            # Greedy policy
-            y, x = state 
-            q_values = self.qtable[y, x, :] # Fetch from the q-table the 4 q-values for this current state (The 4 q-values correspond to actions North, South, West, East)
-            legal_q_values = self.qtable[y, x, legal_moves]
-            best_q_value = legal_q_values.max() # identify the best q_value
-            best_q_indices = np.argwhere(q_values == best_q_value).flatten().tolist() # find all those occurences of the max q-value
-            best_q_indices = [index for index in best_q_indices if index in legal_moves]
-            return np.random.choice(best_q_indices) # if multiple q values have the maximum value, then choose one of them randomly
+            # greedy policy
+            return np.random.choice(self.get_best_actions(state))
 
     def reset_iteration(self):
         # configuation for the current iteration
@@ -49,9 +53,12 @@ class OnPolicyMonteCarloAgent(Agent):
 
     def iteration_step(self):
         self.time_step += 1
+        
+        # keep track of s', a, r for when the episode ends
         action = self.run_policy(self.state)
         new_state, reward, self.done = self.environment.step(action, self.state)
         self.episodes.append((self.state, action, reward))
+
         self.state = new_state
         self.current_iteration_path.append((*self.state, (200, 200, 0)))
 
@@ -59,6 +66,7 @@ class OnPolicyMonteCarloAgent(Agent):
             self.trajectory_length_history.append(self.time_step)
             self.completed_iterations += 1
 
+            # episode has ended, so do all the learning in one go
             cumulative_reward = 0
             for t in range(len(self.episodes) - 1, -1, -1):
                 (y, x), action, reward = self.episodes[t]

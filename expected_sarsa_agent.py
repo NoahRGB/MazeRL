@@ -8,9 +8,9 @@ import random
 class ExpectedSarsaAgent(Agent):
     def __init__(self, environment, epsilon, discount_factor, step_size=1.0):
         super().__init__(environment)
-        self.title = f"On policy expected sarsa agent (ε-greedy)"
+        self.title = f"On policy expected sarsa agent (decaying ε-greedy)"
 
-        self.qtable = np.full((environment.maze_height, environment.maze_width, len(environment.actions)), -1.)
+        self.qtable = np.full((environment.maze_height, environment.maze_width, len(environment.actions)), 0.0)
 
         self.epsilon = epsilon
         self.step_size = step_size
@@ -23,10 +23,10 @@ class ExpectedSarsaAgent(Agent):
     def get_best_actions(self, state):
         y, x = state
         legal_moves = self.environment.get_legal(state)
-        q_values = self.qtable[y, x, :] # Fetch from the q-table the 4 q-values for this current state (The 4 q-values correspond to actions North, South, West, East)
+        q_values = self.qtable[y, x, :]
         legal_q_values = self.qtable[y, x, legal_moves]
-        best_q_value = legal_q_values.max() # identify the best q_value
-        best_q_indices = np.argwhere(q_values == best_q_value).flatten().tolist() # find all those occurences of the max q-value
+        best_q_value = legal_q_values.max()
+        best_q_indices = np.argwhere(q_values == best_q_value).flatten().tolist()
         best_q_indices = [index for index in best_q_indices if index in legal_moves]
         return best_q_indices
 
@@ -35,6 +35,7 @@ class ExpectedSarsaAgent(Agent):
         if random.random() < self.epsilon:
             return random.choice(legal_moves)
         else:
+            # greedy
             return np.random.choice(self.get_best_actions(state))
 
     def reset_iteration(self):
@@ -64,7 +65,9 @@ class ExpectedSarsaAgent(Agent):
                 prob = (self.epsilon / len(legal_actions))
             target += prob * self.qtable[new_state_y, new_state_x, new_action]
 
-        self.qtable[current_state_y, current_state_x, action] += self.step_size * (reward + self.discount_factor * target - self.qtable[current_state_y, current_state_x, action])
+        self.qtable[current_state_y, current_state_x, action] += (
+                self.step_size * (reward + self.discount_factor * target - self.qtable[current_state_y, current_state_x, action])
+        )
 
         self.state = new_state
 
